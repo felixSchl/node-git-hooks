@@ -1,0 +1,4 @@
+*.sw[mnopqrstuv]
+*.un~
+dist/
+node_modules/

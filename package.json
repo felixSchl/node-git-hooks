@@ -1,0 +1,35 @@
+{
+  "name": "node-git-hooks",
+  "version": "0.0.0",
+  "description": "",
+  "main": "gulpfile.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/felixschl/node-git-hooks.git"
+  },
+  "author": "Felix Schlitter <felixschlitter@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/felixschl/node-git-hooks/issues"
+  },
+  "homepage": "https://github.com/felixschl/node-git-hooks#readme",
+  "devDependencies": {
+    "gulp": "^3.9.0",
+    "gulp-babel": "^5.2.0",
+    "gulp-sourcemaps": "^1.5.2"
+  },
+  "dependencies": {
+    "bluebird": "^2.9.34",
+    "co": "^4.6.0",
+    "lodash": "^3.10.1",
+    "mkdirp": "^0.5.1",
+    "regenerator": "^0.8.36",
+    "source-map-support": "^0.3.2"
+  }
+}
