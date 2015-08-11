@@ -60,7 +60,7 @@ const router = {
   `),
   args => {
     Promise.resolve(co(function*() {
-      const directory = yield git.find();
+      const directory = yield git.getGitRepoRoot();
       yield install(directory);
     }))
     .catch(e => { throw e; });

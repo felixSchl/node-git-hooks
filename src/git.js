@@ -1,39 +1,20 @@
-import path from 'path';
 import _ from 'lodash';
-import fs from 'fs';
 import Promise from 'bluebird';
+import { exec } from 'child_process';
 
-/**
- * Promisify modules to avoid callbacks or
- * working with thunks.
- */
+const chomp = (text) =>
+  text.replace(/(\n|\r)+$/, '');
 
-Promise.promisifyAll(fs);
-
-/**
- * Find nearest ancestor's `.git` directory.
- */
-function find() {
-  return (function _find(dir) {
-    return fs.statAsync(path.resolve(dir, '.git'))
-      .then(stats => {
-        if (stats.isDirectory()) {
-          return Promise.resolve(dir);
+export default {
+  getGitRepoRoot: () => {
+    return new Promise((resolve, reject) => {
+      exec('git rev-parse --git-dir', (err, stdout, stderr) => {
+        if (err) {
+          reject(err);
         } else {
-          const err = new Error();
-          err.code = 'ENOENT';
-          return Promise.reject(err);
+          resolve(chomp(stdout));
         }
-      })
-      .catch(
-        e => e.code === 'ENOENT'
-      , __ => {
-        const next = _.initial(dir.split(path.sep)).join(path.sep)
-        return (next && next != '')
-          ? _find(next)
-          : Promise.reject(new Error('No repository at path'));
       });
-  })(process.cwd());
-}
-
-export default { find: find };
+    });
+  }
+};

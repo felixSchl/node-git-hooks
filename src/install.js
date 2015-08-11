@@ -47,11 +47,10 @@ export default function install(directory) {
 
   debug(`Running install in directory \`${ directory }\``);
 
-  const dotGitDir = path.resolve(directory, '.git');
   return co(function*() {
 
     // Ensure `.git/hooks` exists
-    const gitHooksDir = path.resolve(dotGitDir, 'hooks');
+    const gitHooksDir = path.resolve(directory, 'hooks');
     debug(`Running mkdirp for \`${ gitHooksDir }\``);
     yield mkdirpAsync(gitHooksDir);
 
