@@ -1,6 +1,7 @@
 import { docopt } from 'docopt';
 import _ from 'lodash';
 import install from './install';
+import runHook from './run-hook';
 import git from './git';
 import Hooks from './hooks';
 import co from 'co';
@@ -86,6 +87,8 @@ const router = {
       console.error(
         `\`${ args['<hookname>'] }\` is not a valid hookname. Try one of:`);
       _.each(_.keys(Hooks), hook => console.error('  o ', hook));
+    } else {
+      runHook(args['<hookname>'], args['<args>']);
     }
   }],
 };

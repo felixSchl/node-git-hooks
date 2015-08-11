@@ -67,7 +67,7 @@ export default function install(directory) {
       Hooks
     , (acc, hook) => {
         debug(`Processing hook \`${ hook }\``);
-        const injectLine = `node .git/hooks/run-hook.js "${ hook }" "$@"`;
+        const injectLine = `git-hooks run "${ hook }" "$@"`;
         acc[hook] = co(function*() {
           const filepath = path.resolve(gitHooksDir, hook);
           const contents = yield fs.readFileAsync(filepath)
