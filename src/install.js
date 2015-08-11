@@ -3,7 +3,10 @@ import path from 'path';
 import fs from 'fs';
 import co from 'co';
 import _ from 'lodash';
+import kopeer from 'kopeer';
 import mkdirp from 'mkdirp';
+
+const debug = require('debug')('git-hooks');
 
 /**
  * Require `regenerator` runtime as a
@@ -34,27 +37,37 @@ const mkdirpAsync = Promise.promisify(mkdirp);
  * Each of these files will be invoked and a
  * generic hook-handler will be invoked in node
  * with the hook name and it's arguments.
+ *
+ * @param {Filepath} directory
+ * The checkout directory to install the hooks for.
+ *
+ * @returns {Promise.<Unit>}
  */
-export default function install() {
+export default function install(directory) {
 
-  const dotGitDir = path.resolve(__dirname, '..', '.git');
-  co(function*() {
+  debug(`Running install in directory \`${ directory }\``);
 
-    // Ensure `.git` exists and is valid
-    const dotGitStats = yield fs.statAsync(dotGitDir);
-    if (dotGitStats.isDirectory() === false) {
-      throw new Error(
-        `${ dotGitDir } exists but is not a directory`);
-    }
+  const dotGitDir = path.resolve(directory, '.git');
+  return co(function*() {
 
     // Ensure `.git/hooks` exists
     const gitHooksDir = path.resolve(dotGitDir, 'hooks');
+    debug(`Running mkdirp for \`${ gitHooksDir }\``);
     yield mkdirpAsync(gitHooksDir);
 
+    // Write wrapper
+    debug(`Copying \`run-hook.js\`...`);
+    yield kopeer.file(
+      path.resolve(__dirname, 'run-hook.js')
+    , path.resolve(gitHooksDir, 'run-hook.js')
+    );
+
     // Write hook files
+    debug(`Writing hook files...`);
     yield Promise.props(_.foldl(
       Hooks
     , (acc, hook) => {
+        debug(`Processing hook \`${ hook }\``);
         const injectLine = `node .git/hooks/run-hook.js "${ hook }" "$@"`;
         acc[hook] = co(function*() {
           const filepath = path.resolve(gitHooksDir, hook);
@@ -70,7 +83,10 @@ export default function install() {
                   : lines.concat([ injectLine ])
                 ).join('\n');
               });
+          debug(`Writing hook \`${ hook }\``);
           yield fs.writeFileAsync(filepath, contents);
+
+          debug(`Chmoding hook file \`${ hook }\``);
           yield fs.chmodAsync(filepath, '755');
         });
         return acc;
