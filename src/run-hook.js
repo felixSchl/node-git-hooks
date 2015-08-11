@@ -5,6 +5,9 @@ import yaml from 'js-yaml';
 import fs from 'fs';
 import { exec, spawn } from 'child_process';
 import co from 'co';
+import temp from 'temp';
+import shellescape from 'shell-escape';
+import chalk from 'chalk';
 
 const debug = require('debug')('git-hooks');
 
@@ -28,6 +31,13 @@ global.Promise = global.Promise || Promise;
  */
 
 Promise.promisifyAll(fs);
+Promise.promisifyAll(temp);
+
+/**
+ * Enable automatic clean up for `temp`.
+ */
+
+temp.track();
 
 /**
  * Run a hook with the given arguments
@@ -39,20 +49,50 @@ export default function run(hook, args) {
     const config = yaml.safeLoad(
       yield fs.readFileAsync(
         path.resolve(root, '.githooks.yml')));
-    if (_.has(config, hook)) {
-      _.foldl(
-        config[hook]
-      , (acc, cmd) => acc.then(() => new Promise((resolve, reject) => {
-          /**
-           * XXX Solve this Trauerspiel
-           */
-          const child = spawn(cmd, []);
-          child.on('stderr', data => console.error(data.toString('utf-8')));
-          child.on('stdout', data => console.log(data.toString('utf-8')));
-          child.on('error', reject);
-          child.on('close', resolve);
-        }))
-      , Promise.resolve({}));
-    }
-  }));
+
+      /**
+       * Assemble the script to run
+       */
+
+      debug('Assembling script...');
+      const header =
+      [ '#!/usr/bin/env bash'
+      , 'set -eo pipefail'
+      ].join('\n');
+      const script = _.foldl(config[hook], (acc, cmd) =>
+        (acc + [ ``
+               , `echo $ ${ shellescape([chalk.green(cmd)]) }`
+               , cmd
+               , ``
+               ].join('\n'))
+      , header);
+      debug(script);
+
+      /**
+       * Create a temporary file to execute
+       */
+
+      debug('Creating temporary file...');
+      const info = yield temp.openAsync('git-hooks');
+      debug(info.path);
+      yield fs.writeFileAsync(info.path, script);
+      yield fs.chmodAsync(info.path, '755');
+
+      /**
+       * Execute the script
+       */
+
+      debug('Running script...');
+      yield new Promise((resolve, reject) => {
+        const child = spawn('bash', ['--login', info.path]);
+        child.on('stderr', data => console.error(data.toString('utf-8')));
+        child.on('stdout', data => console.log(data.toString('utf-8')));
+        child.on('error', reject);
+        child.on('close', resolve);
+      })
+  }))
+    .catch(e => {
+      console.log(e);
+      throw e;
+    });
 }
