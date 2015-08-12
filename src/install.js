@@ -1,35 +1,20 @@
 import Hooks from './hooks';
 import path from 'path';
 import fs from 'fs';
-import co from 'co';
 import _ from 'lodash';
 import kopeer from 'kopeer';
 import mkdirp from 'mkdirp';
+import Bluebird from 'bluebird';
 
 const debug = require('debug')('git-hooks');
-
-/**
- * Require `regenerator` runtime as a
- * polyfill for ES6 generator functions.
- */
-
-import 'regenerator/runtime';
-
-/**
- * Provide bluebird as a `Promise` polyfill.
- * Note: `tj/co` relies on the global Promise.
- */
-
-import Promise from 'bluebird'
-global.Promise = global.Promise || Promise;
 
 /**
  * Promisify modules to avoid callbacks or
  * working with thunks.
  */
 
-Promise.promisifyAll(fs);
-const mkdirpAsync = Promise.promisify(mkdirp);
+Bluebird.promisifyAll(fs);
+const mkdirpAsync = Bluebird.promisify(mkdirp);
 
 /**
  * Install git hook wrappers.
@@ -47,7 +32,7 @@ export default function install(directory) {
 
   debug(`Running install in directory \`${ directory }\``);
 
-  return co(function*() {
+  return Bluebird.coroutine(function*() {
 
     // Ensure `.git/hooks` exists
     const gitHooksDir = path.resolve(directory, 'hooks');
@@ -63,12 +48,12 @@ export default function install(directory) {
 
     // Write hook files
     debug(`Writing hook files...`);
-    yield Promise.props(_.foldl(
+    yield Bluebird.props(_.foldl(
       Hooks
     , (acc, hook) => {
         debug(`Processing hook \`${ hook }\``);
         const injectLine = `git-hooks run "${ hook }" "$@"`;
-        acc[hook] = co(function*() {
+        acc[hook] = Bluebird.coroutine(function*() {
           const filepath = path.resolve(gitHooksDir, hook);
           const contents = yield fs.readFileAsync(filepath)
               .then(_.method('toString', 'utf-8'))
@@ -87,11 +72,11 @@ export default function install(directory) {
 
           debug(`Chmoding hook file \`${ hook }\``);
           yield fs.chmodAsync(filepath, '755');
-        });
+        })();
         return acc;
     }
     , {}));
-  })
+  })()
     .catch(e => {
       console.error('Failed to install `.git/hooks`:');
       console.error(e.message);

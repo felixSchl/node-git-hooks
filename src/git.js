@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import Promise from 'bluebird';
 import { exec } from 'child_process';
 
 const chomp = (text) =>

@@ -7,7 +7,7 @@ var gulp = require('gulp')
 gulp.task('default', function () {
   return gulp.src(['src/**/*.js'])
     .pipe(sourcemaps.init())
-    .pipe(babel())
+    .pipe(babel({ optional: ['runtime'] }))
     .pipe(sourcemaps.write('.'))
     .pipe(gulp.dest('dist'));
 });

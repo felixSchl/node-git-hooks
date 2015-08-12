@@ -4,24 +4,9 @@ import install from './install';
 import runHook from './run-hook';
 import git from './git';
 import Hooks from './hooks';
-import co from 'co';
+import Bluebird from 'bluebird';
 
 const debug = require('debug')('git-hooks');
-
-/**
- * Require `regenerator` runtime as a
- * polyfill for ES6 generator functions.
- */
-
-import 'regenerator/runtime';
-
-/**
- * Provide bluebird as a `Promise` polyfill.
- * Note: `tj/co` relies on the global Promise.
- */
-
-import Promise from 'bluebird'
-global.Promise = global.Promise || Promise;
 
 /**
  * Install source maps.
@@ -60,10 +45,10 @@ const router = {
   |   git-hooks install
   `),
   args => {
-    Promise.resolve(co(function*() {
+    Bluebird.coroutine(function*() {
       const directory = yield git.getGitRepoRoot();
       yield install(directory);
-    }))
+    })()
     .catch(e => { throw e; });
   }],
 

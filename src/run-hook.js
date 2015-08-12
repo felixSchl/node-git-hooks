@@ -4,34 +4,19 @@ import git from './git';
 import yaml from 'js-yaml';
 import fs from 'fs';
 import { exec, spawn } from 'child_process';
-import co from 'co';
 import temp from 'temp';
 import shellescape from 'shell-escape';
 import chalk from 'chalk';
+import Bluebird from 'bluebird';
 
 const debug = require('debug')('git-hooks');
-
-/**
- * Require `regenerator` runtime as a
- * polyfill for ES6 generator functions.
- */
-
-import 'regenerator/runtime';
-
-/**
- * Provide bluebird as a `Promise` polyfill.
- * Note: `tj/co` relies on the global Promise.
- */
-
-import Promise from 'bluebird'
-global.Promise = global.Promise || Promise;
 
 /**
  * Promisify modules
  */
 
-Promise.promisifyAll(fs);
-Promise.promisifyAll(temp);
+Bluebird.promisifyAll(fs);
+Bluebird.promisifyAll(temp);
 
 /**
  * Enable automatic clean up for `temp`.
@@ -44,7 +29,7 @@ temp.track();
  */
 
 export default function run(hook, args) {
-  return Promise.resolve(co(function*() {
+  return Bluebird.coroutine(function*() {
     const root = path.resolve(yield git.getGitRepoRoot(), '..');
 
     /**
@@ -95,5 +80,5 @@ export default function run(hook, args) {
       child.on('error', reject);
       child.on('close', resolve);
     })
-  }));
+  })();
 }
