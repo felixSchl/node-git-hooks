@@ -27,20 +27,23 @@ const existsAsync = path => new Promise((resolve) => fs.exists(path, resolve));
  * generic hook-handler will be invoked in node
  * with the hook name and it's arguments.
  *
- * @param {Filepath} directory
+ * @param {Filepath} dotGitDir
  * The checkout directory to install the hooks for.
  *
  * @returns {Promise.<Unit>}
  */
-export default function install(directory, force=false) {
+export default function install(dotGitDir, force=false) {
 
-  debug(`Running install in directory \`${ directory }\``);
+  debug(`Running install in directory \`${ dotGitDir }\``);
 
   return Bluebird.coroutine(function*() {
 
     // Back up `.git/hooks` if it exists
-    const gitHooksDir = path.resolve(directory, 'hooks')
-        , gitHooksBackup = path.resolve(directory, 'hooks.bak');
+    const gitHooksDir = path.resolve(dotGitDir, 'hooks')
+        , gitHooksBackup = path.resolve(dotGitDir, 'hooks.bak')
+        , cacheDir = path.resolve(gitHooksDir, '.cache')
+        , root = path.resolve(dotGitDir, '..')
+        , yamlPath = path.resolve(root, '.githooks.yml');
 
     if(yield existsAsync(gitHooksDir)) {
       debug('`.git/hooks` directory exists');
@@ -68,15 +71,22 @@ export default function install(directory, force=false) {
     debug(`Running mkdirp for \`${ gitHooksDir }\``);
     yield mkdirpAsync(gitHooksDir);
 
+    // Remove `.git/hooks/.cache`
+    yield rimrafAsync(cacheDir);
+
     // Write hook files
     debug(`Writing hook files...`);
     yield Promise.all(_.map(Hooks, Bluebird.coroutine(function*(hook) {
-      const filepath = path.resolve(gitHooksDir, hook);
+      const filepath = path.resolve(gitHooksDir, hook)
+          , cachePath = path.resolve(cacheDir, hook);
       const script =
-      [ '#!/usr/bin/env bash'
-      , ''
-      , `git-hooks run "${ hook }" "$@"` ].join('\n');
-
+        [ '#!/usr/bin/env bash'
+        , `if [ "${ yamlPath }" -nt "${ cachePath }" ];`
+        , 'then'
+        , `git-hooks run "${ hook }" "$@"`
+        , 'else'
+        , `"${ cachePath }"`
+        , 'fi' ].join('\n');
       debug(`Writing hook \`${ hook }\``);
       yield fs.writeFileAsync(filepath, script);
 

@@ -8,6 +8,7 @@ import temp from 'temp';
 import shellescape from 'shell-escape';
 import chalk from 'chalk';
 import Bluebird from 'bluebird';
+import mkdirp from 'mkdirp';
 
 const debug = require('debug')('git-hooks');
 
@@ -17,6 +18,7 @@ const debug = require('debug')('git-hooks');
 
 Bluebird.promisifyAll(fs);
 Bluebird.promisifyAll(temp);
+const mkdirpAsync = Bluebird.promisify(mkdirp);
 
 /**
  * Enable automatic clean up for `temp`.
@@ -30,15 +32,19 @@ temp.track();
 
 export default function run(hook, args) {
   return Bluebird.coroutine(function*() {
-    const root = path.resolve(yield git.getGitRepoRoot(), '..');
+    const dotGitDir = yield git.getGitRepoRoot()
+        , hooksDir = path.resolve(dotGitDir, 'hooks')
+        , cacheDir = path.resolve(hooksDir, '.cache')
+        , cachePath = path.resolve(cacheDir, hook)
+        , root = path.resolve(dotGitDir, '..')
+        , yamlPath = path.resolve(root, '.githooks.yml');
 
     /**
      * Load YAML configuration file
      */
 
     const config = yaml.safeLoad(
-      yield fs.readFileAsync(
-        path.resolve(root, '.githooks.yml')));
+      yield fs.readFileAsync(yamlPath));
 
     /**
      * Assemble the script to run
@@ -59,14 +65,17 @@ export default function run(hook, args) {
         , [])).join('\n');
 
     /**
-     * Create a temporary file to execute
+     * Create a cache file to execute
      */
 
-    debug('Creating temporary file...');
-    const info = yield temp.openAsync('git-hooks');
-    debug(info.path);
-    yield fs.writeFileAsync(info.path, script);
-    yield fs.chmodAsync(info.path, '755');
+    debug('Creating cache directory');
+    yield mkdirpAsync(cacheDir);
+
+    debug('Writign script file');
+    yield fs.writeFileAsync(cachePath, script);
+
+    debug('Making script file executable');
+    yield fs.chmodAsync(cachePath, '755');
 
     /**
      * Execute the script
@@ -74,7 +83,7 @@ export default function run(hook, args) {
 
     debug('Running script...');
     yield new Promise((resolve, reject) => {
-      const child = spawn('bash', ['--login', info.path]);
+      const child = spawn('bash', ['--login', cachePath]);
       child.stderr.on('data', data => console.error(data.toString('utf-8')));
       child.stdout.on('data', data => console.log(data.toString('utf-8')));
       child.on('error', reject);
