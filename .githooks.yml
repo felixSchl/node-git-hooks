@@ -1,2 +1,5 @@
 pre-commit:
-    - echo 'test'
+    - npm test
+
+commit-msg:
+    - node hooks/tpope.js

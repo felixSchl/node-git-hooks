@@ -63,7 +63,7 @@ export default function generate(hook) {
       , ''
       ].concat(
         _.foldl(config[hook], (acc, cmd) =>
-          acc.concat([ '', echo(cmd), cmd, '' ])
+          acc.concat([ '', echo(cmd), cmd + ' "$@"', '' ])
         , [])).join('\n');
 
     /**

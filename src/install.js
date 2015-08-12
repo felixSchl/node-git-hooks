@@ -86,7 +86,7 @@ export default function install(dotGitDir, force=false) {
         , 'then'
         , `  git-hooks install -f`
         , 'fi'
-        , `"${ cachePath }"` ].join('\n');
+        , `"${ cachePath }" "$@"` ].join('\n');
       debug(`Writing hook \`${ hook }\``);
       yield fs.writeFileAsync(filepath, script);
 

@@ -1,7 +1,5 @@
 import { docopt } from 'docopt';
 import _ from 'lodash';
-import install from './install';
-import git from './git';
 import Hooks from './hooks';
 import Bluebird from 'bluebird';
 
@@ -11,10 +9,9 @@ const debug = require('debug')('git-hooks');
  * Install source maps.
  */
 
-try {
+if (process.env.NODE_ENV !== 'production') {
   require('source-map-support').install();
-} catch(e) {}
-
+}
 
 let r = s => _.map(
   s.split('\n')
@@ -46,9 +43,12 @@ const router = {
   |   -f, --force  Force the install, may result in data loss.
   `),
   args => {
+    const install = require('./install')
+        , git = require('./git');
     Bluebird.coroutine(function*() {
-      const directory = yield git.getGitRepoRoot();
-      yield install(directory, args['--force']);
+      yield install(
+        yield git.getGitRepoRoot()
+      , args['--force']);
     })()
     .catch(e => { throw e; });
   }],
@@ -57,6 +57,7 @@ const router = {
 /**
  * Kick-Off!
  */
+
 if (_.has(router, process.argv[2])) {
   const [ doc, fun ] = router[process.argv[2]]()
       , args = docopt(doc);
