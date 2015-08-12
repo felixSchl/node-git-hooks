@@ -45,18 +45,18 @@ export default function run(hook, args) {
      */
 
     debug('Assembling script...');
-    const header =
-    [ '#!/usr/bin/env bash'
-    , 'set -eo pipefail'
-    ].join('\n');
-    const script = _.foldl(config[hook], (acc, cmd) =>
-      (acc + [ ``
-             , `echo $ ${ shellescape([chalk.green(cmd)]) }`
-             , cmd
-             , ``
-             ].join('\n'))
-    , header);
-    debug(script);
+    const echo = msg =>
+      `echo $ ${ shellescape([chalk.green(msg)]) }`
+    const script =
+      [ '#!/usr/bin/env bash'
+      , 'set -eo pipefail'
+      , ''
+      , echo(`Running hook \`${ hook }\`...`)
+      , ''
+      ].concat(
+        _.foldl(config[hook], (acc, cmd) =>
+          acc.concat([ '', echo(cmd), cmd, '' ])
+        , [])).join('\n');
 
     /**
      * Create a temporary file to execute
