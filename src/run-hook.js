@@ -57,8 +57,6 @@ export default function run(hook, args) {
       [ '#!/usr/bin/env bash'
       , 'set -eo pipefail'
       , ''
-      , echo(`Running hook \`${ hook }\`...`)
-      , ''
       ].concat(
         _.foldl(config[hook], (acc, cmd) =>
           acc.concat([ '', echo(cmd), cmd, '' ])
