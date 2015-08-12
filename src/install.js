@@ -6,6 +6,7 @@ import kopeer from 'kopeer';
 import mkdirp from 'mkdirp';
 import rimraf from 'rimraf';
 import Bluebird from 'bluebird';
+import generate from './generate';
 import { AlreadyInstalledError } from './errors';
 
 const debug = require('debug')('git-hooks');
@@ -83,12 +84,14 @@ export default function install(dotGitDir, force=false) {
         [ '#!/usr/bin/env bash'
         , `if [ "${ yamlPath }" -nt "${ cachePath }" ];`
         , 'then'
-        , `git-hooks run "${ hook }" "$@"`
-        , 'else'
-        , `"${ cachePath }"`
-        , 'fi' ].join('\n');
+        , `  git-hooks install -f`
+        , 'fi'
+        , `"${ cachePath }"` ].join('\n');
       debug(`Writing hook \`${ hook }\``);
       yield fs.writeFileAsync(filepath, script);
+
+      // Warm the cache
+      yield generate(hook);
 
       debug(`Chmoding hook file \`${ hook }\``);
       yield fs.chmodAsync(filepath, '755');

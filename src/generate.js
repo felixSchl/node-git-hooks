@@ -27,10 +27,14 @@ const mkdirpAsync = Bluebird.promisify(mkdirp);
 temp.track();
 
 /**
- * Run a hook with the given arguments
+ * Run a hook with the given arguments.
+ * Generates a script from the `.githooks.yml` specification.
+ *
+ * @param {String} hook
+ * The hook to run, e.g. `pre-commit`.
  */
 
-export default function run(hook, args) {
+export default function generate(hook) {
   return Bluebird.coroutine(function*() {
     const dotGitDir = yield git.getGitRepoRoot()
         , hooksDir = path.resolve(dotGitDir, 'hooks')
@@ -74,18 +78,5 @@ export default function run(hook, args) {
 
     debug('Making script file executable');
     yield fs.chmodAsync(cachePath, '755');
-
-    /**
-     * Execute the script
-     */
-
-    debug('Running script...');
-    yield new Promise((resolve, reject) => {
-      const child = spawn('bash', ['--login', cachePath]);
-      child.stderr.on('data', data => console.error(data.toString('utf-8')));
-      child.stdout.on('data', data => console.log(data.toString('utf-8')));
-      child.on('error', reject);
-      child.on('close', resolve);
-    })
   })();
 }
