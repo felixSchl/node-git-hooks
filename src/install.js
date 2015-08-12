@@ -4,7 +4,9 @@ import fs from 'fs';
 import _ from 'lodash';
 import kopeer from 'kopeer';
 import mkdirp from 'mkdirp';
+import rimraf from 'rimraf';
 import Bluebird from 'bluebird';
+import { AlreadyInstalledError } from './errors';
 
 const debug = require('debug')('git-hooks');
 
@@ -15,6 +17,8 @@ const debug = require('debug')('git-hooks');
 
 Bluebird.promisifyAll(fs);
 const mkdirpAsync = Bluebird.promisify(mkdirp);
+const rimrafAsync = Bluebird.promisify(rimraf);
+const existsAsync = path => new Promise((resolve) => fs.exists(path, resolve));
 
 /**
  * Install git hook wrappers.
@@ -28,59 +32,61 @@ const mkdirpAsync = Bluebird.promisify(mkdirp);
  *
  * @returns {Promise.<Unit>}
  */
-export default function install(directory) {
+export default function install(directory, force=false) {
 
   debug(`Running install in directory \`${ directory }\``);
 
   return Bluebird.coroutine(function*() {
 
+    // Back up `.git/hooks` if it exists
+    const gitHooksDir = path.resolve(directory, 'hooks')
+        , gitHooksBackup = path.resolve(directory, 'hooks.bak');
+
+    if(yield existsAsync(gitHooksDir)) {
+      debug('`.git/hooks` directory exists');
+      if(yield existsAsync(gitHooksBackup)) {
+        debug('`.git/hooks.bak` directory exists');
+        if (force) {
+          debug('Removing `.git/hooks.bak`...');
+          debug('Removing `.git/hooks`...');
+          yield Promise.all(
+                [ rimrafAsync(gitHooksBackup)
+                , rimrafAsync(gitHooksDir) ]);
+        } else {
+          throw new AlreadyInstalledError();
+        }
+      } else {
+        debug('`.git/hooks.bak` does not exit');
+        debug('Copying `.git/hooks` to `.git/hooks.bak`...');
+        yield kopeer.directory(gitHooksDir, gitHooksBackup);
+        debug('Removing `.git/hooks`...');
+        yield rimrafAsync(gitHooksDir);
+      }
+    }
+
     // Ensure `.git/hooks` exists
-    const gitHooksDir = path.resolve(directory, 'hooks');
     debug(`Running mkdirp for \`${ gitHooksDir }\``);
     yield mkdirpAsync(gitHooksDir);
 
-    // Write wrapper
-    debug(`Copying \`run-hook.js\`...`);
-    yield kopeer.file(
-      path.resolve(__dirname, 'run-hook.js')
-    , path.resolve(gitHooksDir, 'run-hook.js')
-    );
-
     // Write hook files
     debug(`Writing hook files...`);
-    yield Bluebird.props(_.foldl(
-      Hooks
-    , (acc, hook) => {
-        debug(`Processing hook \`${ hook }\``);
-        const injectLine = `git-hooks run "${ hook }" "$@"`;
-        acc[hook] = Bluebird.coroutine(function*() {
-          const filepath = path.resolve(gitHooksDir, hook);
-          const contents = yield fs.readFileAsync(filepath)
-              .then(_.method('toString', 'utf-8'))
-              .catch(e => e.code === 'ENOENT', _ => '')
-              .then(code => {
-                // Naiivly see if `${injectLine}` already exists in file,
-                // then only append if it does not.
-                const lines = code.split('\n');
-                return (_.any(code.split('\n'), line => line === injectLine)
-                  ? lines
-                  : lines.concat([ injectLine ])
-                ).join('\n');
-              });
-          debug(`Writing hook \`${ hook }\``);
-          yield fs.writeFileAsync(filepath, contents);
+    yield Promise.all(_.map(Hooks, Bluebird.coroutine(function*(hook) {
+      const filepath = path.resolve(gitHooksDir, hook);
+      const script =
+      [ '#!/usr/bin/env bash'
+      , ''
+      , `git-hooks run "${ hook }" "$@"` ].join('\n');
 
-          debug(`Chmoding hook file \`${ hook }\``);
-          yield fs.chmodAsync(filepath, '755');
-        })();
-        return acc;
-    }
-    , {}));
+      debug(`Writing hook \`${ hook }\``);
+      yield fs.writeFileAsync(filepath, script);
+
+      debug(`Chmoding hook file \`${ hook }\``);
+      yield fs.chmodAsync(filepath, '755');
+    })));
   })()
     .catch(e => {
       console.error('Failed to install `.git/hooks`:');
-      console.error(e.message);
-      console.error(e.stack);
+      console.error(e.toString());
       throw e;
     });
 }

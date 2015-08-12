@@ -42,12 +42,15 @@ const router = {
   | Install git hooks in the nearest git repository.
   |
   | Usage:
-  |   git-hooks install
+  |   git-hooks install [--force]
+  |
+  | Options:
+  |   -f, --force  Force the install, may result in data loss.
   `),
   args => {
     Bluebird.coroutine(function*() {
       const directory = yield git.getGitRepoRoot();
-      yield install(directory);
+      yield install(directory, args['--force']);
     })()
     .catch(e => { throw e; });
   }],
