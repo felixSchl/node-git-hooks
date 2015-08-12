@@ -44,7 +44,7 @@ export default function run(hook, args) {
      */
 
     const config = yaml.safeLoad(
-      yield fs.readFileAsync(yamlPath));
+      yield fs.readFileAsync(yamlPath)) || {};
 
     /**
      * Assemble the script to run
