@@ -85,8 +85,8 @@ export default function run(hook, args) {
       debug('Running script...');
       yield new Promise((resolve, reject) => {
         const child = spawn('bash', ['--login', info.path]);
-        child.on('stderr', data => console.error(data.toString('utf-8')));
-        child.on('stdout', data => console.log(data.toString('utf-8')));
+        child.stderr.on('data', data => console.error(data.toString('utf-8')));
+        child.stdout.on('data', data => console.log(data.toString('utf-8')));
         child.on('error', reject);
         child.on('close', resolve);
       })
