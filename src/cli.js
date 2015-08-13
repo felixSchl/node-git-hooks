@@ -23,8 +23,13 @@ let r = s => _.map(
 
 const args = docopt(r(
   `
+  | Welcome to \`node-git-hooks\`.
+  |
+  | There are several commands available, in order to
+  | get help for each command, run \`git-hooks <command> --help\`.
+  |
   | Usage:
-  |   git-hooks install
+  |   git-hooks install [--help]
   `
 ), { argv: _.take(_.drop(process.argv, 2), 1) });
 
