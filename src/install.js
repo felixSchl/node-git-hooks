@@ -84,7 +84,7 @@ export default function install(dotGitDir, force=false) {
         [ '#!/usr/bin/env bash'
         , `if [ "${ yamlPath }" -nt "${ cachePath }" ];`
         , 'then'
-        , `  git-hooks install -f`
+        , `  git-hooks infect -f`
         , 'fi'
         , `"${ cachePath }" "$@"` ].join('\n');
       debug(`Writing hook \`${ hook }\``);

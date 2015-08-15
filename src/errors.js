@@ -3,8 +3,8 @@ export class AlreadyInstalledError extends Error {
     super();
     Error.call(
       this
-    , '`git-hooks` has already been installed. '
-    + 'Use `-f` to force a re-install');
+    , 'This git repo has already been infected.'
+    + 'Use `-f` to force a re-infect');
     Error.captureStackTrace(this, this.constructor);
     Object.defineProperty(this, 'name', {
       configurable : true,

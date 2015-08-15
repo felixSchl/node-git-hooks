@@ -48,20 +48,22 @@ const args = docopt(r(
   | get help for each command, run \`git-hooks <command> --help\`.
   |
   | Usage:
-  |   git-hooks (i|install) [--help]
+  |   git-hooks (i|infect) [--help]
   `
 ), { argv: _.take(_.drop(process.argv, 2), 1) });
 
 const router = {
+
   /**
-   * `git-hooks install`
+   * `git-hooks infect`
    */
-  install: () => [r(
+
+  infect: () => [r(
   `
   | Install git hooks in the nearest git repository.
   |
   | Usage:
-  |   git-hooks (i|install) [--force]
+  |   git-hooks (i|infect) [--force]
   |
   | Options:
   |   -f, --force  Force the install, may result in data loss.
@@ -81,7 +83,7 @@ const router = {
  * Abbreviations
  */
 
-router['i'] = router['install'];
+router['i'] = router['infect'];
 
 /**
  * Kick-Off!
