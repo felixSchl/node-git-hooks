@@ -2,8 +2,27 @@ import { docopt } from 'docopt';
 import _ from 'lodash';
 import Hooks from './hooks';
 import Bluebird from 'bluebird';
+import woody from 'woody';
 
-const debug = require('debug')('git-hooks');
+const go = f => Bluebird.coroutine(f)();
+
+/**
+ * Application-wide logger
+ */
+
+const logger = woody
+  .bracketed()
+  .to(woody.console)
+  .context('git-hooks');
+
+/**
+ * Debug logger
+ */
+
+const debug = woody
+  .debug()
+  .context('git-hooks');
+
 
 /**
  * Install source maps.
@@ -29,7 +48,7 @@ const args = docopt(r(
   | get help for each command, run \`git-hooks <command> --help\`.
   |
   | Usage:
-  |   git-hooks install [--help]
+  |   git-hooks (i|install) [--help]
   `
 ), { argv: _.take(_.drop(process.argv, 2), 1) });
 
@@ -42,7 +61,7 @@ const router = {
   | Install git hooks in the nearest git repository.
   |
   | Usage:
-  |   git-hooks install [--force]
+  |   git-hooks (i|install) [--force]
   |
   | Options:
   |   -f, --force  Force the install, may result in data loss.
@@ -50,23 +69,27 @@ const router = {
   args => {
     const install = require('./install')
         , git = require('./git');
-    Bluebird.coroutine(function*() {
+    go(function*() {
       yield install(
         yield git.getGitRepoRoot()
       , args['--force']);
-    })()
-    .catch(e => { throw e; });
+    });
   }],
 };
+
+/**
+ * Abbreviations
+ */
+
+router['i'] = router['install'];
 
 /**
  * Kick-Off!
  */
 
 if (_.has(router, process.argv[2])) {
-  const [ doc, fun ] = router[process.argv[2]]()
-      , args = docopt(doc);
-  fun(args);
+  const [ doc, fun ] = router[process.argv[2]]();
+  fun(docopt(doc));
 } else {
   process.stderr.write(
     `Command \`${ process.argv[2] }\` not recognized\n`);

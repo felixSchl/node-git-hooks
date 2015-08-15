@@ -96,6 +96,25 @@ export default function install(dotGitDir, force=false) {
       debug(`Chmoding hook file \`${ hook }\``);
       yield fs.chmodAsync(filepath, '755');
     })));
+
+    // Write `.githooks.yml` if it doesn't exit
+    if (!fs.existsSync(yamlPath)) {
+      debug(`Writing sample \`.githooks.yml\` file`);
+      yield fs.writeFileAsync(
+        yamlPath
+      , [ '# Use this file to specify the commands that should run when a'
+        , '# git hook gets triggered.'
+        , '#'
+        , '# Specify the scripts to run as a yaml array, for example:'
+        , '#'
+        , '# pre-commit'
+        , '#   - npm run lint'
+        , '#   - npm run test'
+        , ''
+        ].concat(
+          _.foldl(Hooks, (acc, hook) =>
+            acc.concat([ hook + ':', '' ]), [])).join('\n'))
+    }
   })()
     .catch(e => {
       console.error('Failed to install `.git/hooks`:');

@@ -47,8 +47,9 @@ export default function generate(hook) {
      * Load YAML configuration file
      */
 
-    const config = yaml.safeLoad(
-      yield fs.readFileAsync(yamlPath)) || {};
+    const config = (fs.existsSync(yamlPath))
+      ? (yaml.safeLoad(yield fs.readFileAsync(yamlPath)) || {})
+      : {};
 
     /**
      * Assemble the script to run
@@ -73,7 +74,7 @@ export default function generate(hook) {
     debug('Creating cache directory');
     yield mkdirpAsync(cacheDir);
 
-    debug('Writign script file');
+    debug('Writing script file');
     yield fs.writeFileAsync(cachePath, script);
 
     debug('Making script file executable');
