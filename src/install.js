@@ -8,8 +8,8 @@ import rimraf from 'rimraf';
 import Bluebird from 'bluebird';
 import generate from './generate';
 import { AlreadyInstalledError } from './errors';
-
-const debug = require('debug')('git-hooks');
+import no from 'noroutine';
+import woody from 'woody';
 
 /**
  * Promisify modules to avoid callbacks or
@@ -33,19 +33,18 @@ const existsAsync = path => new Promise((resolve) => fs.exists(path, resolve));
  *
  * @returns {Promise.<Unit>}
  */
-export default function install(dotGitDir, force=false) {
-
+export default function install(dotGitDir, force=false, logger=woody.noop) {
+  const debug = logger.debug.bind(logger);
   debug(`Running install in directory \`${ dotGitDir }\``);
 
-  return Bluebird.coroutine(function*() {
-
-    // Back up `.git/hooks` if it exists
+  return no(function*() {
     const gitHooksDir = path.resolve(dotGitDir, 'hooks')
         , gitHooksBackup = path.resolve(dotGitDir, 'hooks.bak')
         , cacheDir = path.resolve(gitHooksDir, '.cache')
         , root = path.resolve(dotGitDir, '..')
         , yamlPath = path.resolve(root, '.githooks.yml');
 
+    // Back up `.git/hooks` if it exists
     if(yield existsAsync(gitHooksDir)) {
       debug('`.git/hooks` directory exists');
       if(yield existsAsync(gitHooksBackup)) {
@@ -53,9 +52,9 @@ export default function install(dotGitDir, force=false) {
         if (force) {
           debug('Removing `.git/hooks.bak`...');
           debug('Removing `.git/hooks`...');
-          yield Promise.all(
-                [ rimrafAsync(gitHooksBackup)
-                , rimrafAsync(gitHooksDir) ]);
+          yield Promise.all([
+            rimrafAsync(gitHooksBackup)
+          , rimrafAsync(gitHooksDir)]);
         } else {
           throw new AlreadyInstalledError();
         }
@@ -115,7 +114,7 @@ export default function install(dotGitDir, force=false) {
           _.foldl(Hooks, (acc, hook) =>
             acc.concat([ hook + ':', '' ]), [])).join('\n'))
     }
-  })()
+  })
     .catch(e => {
       console.error('Failed to install `.git/hooks`:');
       console.error(e.toString());

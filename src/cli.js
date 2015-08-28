@@ -11,18 +11,10 @@ const go = f => Bluebird.coroutine(f)();
  */
 
 const logger = woody
-  .bracketed()
+  .as(woody.bracketed())
   .to(woody.console)
-  .context('git-hooks');
-
-/**
- * Debug logger
- */
-
-const debug = woody
-  .debug()
-  .context('git-hooks');
-
+  .fork('git-hooks')
+  .fork(woody.level());
 
 /**
  * Install source maps.
@@ -74,7 +66,8 @@ const router = {
     go(function*() {
       yield install(
         yield git.getGitRepoRoot()
-      , args['--force']);
+      , args['--force']
+      , logger.fork('install'));
     });
   }],
 };
