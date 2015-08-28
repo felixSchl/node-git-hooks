@@ -7,10 +7,15 @@
 
 var fs = require('fs')
   , path = require('path')
+  , _ = require('lodash')
   , chalk = require('chalk');
 
 var file = path.resolve(process.cwd(), process.argv[2])
-  , lines = fs.readFileSync(file).toString('utf-8').split('\n')
+  , lines = _.filter(
+      fs.readFileSync(file).toString('utf-8').split('\n')
+    , function(line) {
+        return (line.length === 0 || line[0] !== '#');
+      })
   , lead = chalk.gray('> ')
   , err = console.error.bind(console)
   , repeat = function(pattern, count) {
@@ -23,14 +28,6 @@ var file = path.resolve(process.cwd(), process.argv[2])
       }
       return result + pattern;
     };
-
-var lines_ = [];
-for(var i = 0; i < lines.length; i++) {
-  if (lines[i].length && lines[i][0] !== '#') {
-    lines_.push(lines[i]);
-  }
-}
-lines = lines_;
 
 /**
  * Run a pragmatic, uncomprehensive check in an effort to enforce Tim Pope's
