@@ -24,6 +24,14 @@ var file = path.resolve(process.cwd(), process.argv[2])
       return result + pattern;
     };
 
+var lines_ = [];
+for(var i = 0; i < lines.length; i++) {
+  if (lines[i].length && lines[i][0] !== '#') {
+    lines_.push(lines[i]);
+  }
+}
+lines = lines_;
+
 /**
  * Run a pragmatic, uncomprehensive check in an effort to enforce Tim Pope's
  * vision.
@@ -60,7 +68,7 @@ if (lines.length && lines[0].length) {
    * Validate there is a blank line between the message and the description.
    */
 
-  if (lines.length > 1) {
+  if (lines.length > 2) {
     if (lines[1].replace(/\s/g, '').length) {
       err(chalk.red(
         'Error: Second line should be empty:'));
